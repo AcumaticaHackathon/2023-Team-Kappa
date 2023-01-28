@@ -23,6 +23,7 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
+[Bb]in/
 [Oo]bj/
 [Ll]og/
 
@@ -67,9 +68,7 @@ StyleCopReport.xml
 *.obj
 *.iobj
 *.pch
-[Dd]ebug/[Bb]in/*.pdb
-[Rr]elease/[Bb]in/*.pdb
-[Rr]eleases/[Bb]in/*.pdb
+*.pdb
 *.ipdb
 *.pgc
 *.pgd
@@ -339,3 +338,4 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+*.zip
