@@ -53,37 +53,63 @@ namespace HackathonKappa2023
 					var notification = JsonConvert.DeserializeObject<Notification>(testValue);
 
 					var graph = PXGraph.CreateInstance<LeadMaint>();
+					
 					string fullName = notification.contactreply;
-					string[] inteliname = fullName.Split(' ');
-
-					var Q = new SelectFrom<Contact>.Where<Use<Contact.firstName>.AsString.IsEqual<@P.AsString>.
-						And<Use<Contact.lastName>.AsString.IsEqual<@P.AsString>.
-						And<Use<Contact.phone1>.AsString.IsEqual<@P.AsString>>>>.
+					string[] inteliname = new string[0];
+					if (!string.IsNullOrEmpty(fullName))
+					{
+						inteliname = fullName.Split(' ');
+						if (inteliname.Length == 1)
+						{
+							inteliname = new string[2] { fullName, fullName };
+						}
+					}
+					var Q = new SelectFrom<Contact>.
+						Where<Use<Contact.phone1>.AsString.IsEqual<@P.AsString>>.
 						View(graph);
 
 					CRLead lead;
-					Contact c = Q.Select(inteliname[0], inteliname[1], notification.phonenumber).TopFirst;
+					Contact c = Q.Select(notification.phonenumber).TopFirst;
 					if (c != null)
 					{
 						graph.Lead.Current = graph.Lead.Search<CRLead.contactID>(c.ContactID);
 						lead = graph.Lead.Current;
 						graph.AddressCurrent.Select();
-						lead.Description = "Updated from Text Campaing";
+						lead.Description = "Updated from Text Campaign";
+						
+						string note = PXNoteAttribute.GetNote(graph.Caches[typeof(CRLead)], lead);
+						if (!string.IsNullOrEmpty(note))
+						{
+							note += ". " + notification.cgptmessage;
+						}
+						else
+						{
+							note = notification.cgptmessage;
+						}
+						PXNoteAttribute.SetNote(graph.Caches[typeof(CRLead)], lead, note);
 					}
 					else
 					{
+						if(inteliname.Length == 0) 
+						{
+							inteliname = new string[2] { notification.phonenumber , "" };
+						}
 						lead = graph.Lead.Insert(new CRLead());
 						graph.Lead.Current = lead;
 						graph.AddressCurrent.Current.CountryID = "US";
 						graph.AddressCurrent.UpdateCurrent();
-						lead.Description = "Created from Text Campaing";
+						lead.Description = "Created from Text Campaign";
 						lead.FirstName = inteliname[0];
 						lead.LastName = inteliname[1];
 						lead.Phone1 = notification.phonenumber;
 						lead.Phone1Type = "C";
-					}
+						
+						lead.CampaignID = "HACKATHON2023";
+						lead.ClassID = "LEADHACK";
+						lead.Method = "X";
 
-					PXNoteAttribute.SetNote(graph.Caches[typeof(CRLead)], lead, notification.cgptmessage);
+						PXNoteAttribute.SetNote(graph.Caches[typeof(CRLead)], lead, notification.cgptmessage);
+					}
 
 					graph.Lead.Update(lead);
 					graph.Actions.PressSave();
