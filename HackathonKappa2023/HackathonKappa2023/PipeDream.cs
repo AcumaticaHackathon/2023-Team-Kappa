@@ -5,10 +5,6 @@ using System.Linq;
 
 using System.Threading;
 using System.Threading.Tasks;
-using static PX.Data.BQL.BqlPlaceholder;
-using static PX.EP.EPLoginType.allowedLoginType;
-
-using static PX.Objects.CR.CaseSourcesAttribute;
 
 
 using System.Net.Http;
@@ -21,6 +17,8 @@ using PX.Objects.CR;
 using System.Web.Http.Results;
 using Newtonsoft.Json;
 using System.Net.Http.Formatting;
+using PX.Data.BQL.Fluent;
+using PX.Data.BQL;
 
 namespace HackathonKappa2023
 {
@@ -55,23 +53,39 @@ namespace HackathonKappa2023
 					var notification = JsonConvert.DeserializeObject<Notification>(testValue);
 
 					var graph = PXGraph.CreateInstance<LeadMaint>();
-					CRLead lead = graph.Lead.Insert(new CRLead());
-					graph.Lead.Current = lead;
-					Address addr = graph.AddressCurrent.Insert(new Address() { CountryID = "US" });
-					graph.AddressCurrent.Current= addr;	
-
-					lead.Description = "Created from Text Campaing";
-
-
 					string fullName = notification.contactreply;
 					string[] inteliname = fullName.Split(' ');
-					lead.FirstName = inteliname[0];
-					lead.LastName = inteliname[1];
-					lead.Phone1 = notification.phonenumber;
-					lead.Phone1Type = "C";
-					graph.Lead.Update(lead);
-					graph.AddressCurrent.Update(addr);
 
+					var Q = new SelectFrom<Contact>.Where<Use<Contact.firstName>.AsString.IsEqual<@P.AsString>.
+						And<Use<Contact.lastName>.AsString.IsEqual<@P.AsString>.
+						And<Use<Contact.phone1>.AsString.IsEqual<@P.AsString>>>>.
+						View(graph);
+
+					CRLead lead;
+					Contact c = Q.Select(inteliname[0], inteliname[1], notification.phonenumber).TopFirst;
+					if (c != null)
+					{
+						graph.Lead.Current = graph.Lead.Search<CRLead.contactID>(c.ContactID);
+						lead = graph.Lead.Current;
+						graph.AddressCurrent.Select();
+						lead.Description = "Updated from Text Campaing";
+					}
+					else
+					{
+						lead = graph.Lead.Insert(new CRLead());
+						graph.Lead.Current = lead;
+						graph.AddressCurrent.Current.CountryID = "US";
+						graph.AddressCurrent.UpdateCurrent();
+						lead.Description = "Created from Text Campaing";
+						lead.FirstName = inteliname[0];
+						lead.LastName = inteliname[1];
+						lead.Phone1 = notification.phonenumber;
+						lead.Phone1Type = "C";
+					}
+
+					PXNoteAttribute.SetNote(graph.Caches[typeof(CRLead)], lead, notification.cgptmessage);
+
+					graph.Lead.Update(lead);
 					graph.Actions.PressSave();
 				}
 				catch (Exception ex)
