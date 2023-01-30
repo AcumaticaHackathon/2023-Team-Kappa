@@ -1,0 +1,7 @@
+﻿<Sql TableName="KPSetup" TableSchemaXml="#CDATA">
+    <CDATA name="TableSchemaXml"><![CDATA[<table name="KPSetup">
+  <col name="CompanyID" type="Int" default="Zero" />
+  <col name="TestField" type="NVarChar(50)" nullable="true" />
+  <col name="tstamp" type="Timestamp" />
+</table>]]></CDATA>
+</Sql>
